@@ -90,11 +90,12 @@ params_damping = [
 ]
 
 dist_damping = [
-    ot.Uniform(0.0, 0.5),
+    # damping coefficient
     ot.Uniform(0.0, 1.0),
     ot.Uniform(0.0, 1.0),
     ot.Uniform(0.0, 1.0),
-
+    ot.Uniform(0.0, 1.0),
+    # day when damping starts
     ot.Uniform(0.0, days),
     ot.Uniform(0.0, days),
     ot.Uniform(0.0, days),
@@ -172,7 +173,6 @@ dist_transition_probabilities = [
     ot.Uniform(0.0, 0.1), ot.Uniform(0.0, 0.1), ot.Uniform(0.1, 0.18), ot.Uniform(0.1, 0.18), ot.Uniform(0.3, 0.5), ot.Uniform(0.5, 0.7),
 ]
 
-
 input_factor_names = params_not_age_dependent \
                     + params_damping \
                     + params_transition_duration_ages \
@@ -185,7 +185,6 @@ coll = dist_not_age_dependent \
     + dist_initial_numbers_comp
 
 dimension = len(input_factor_names)
-
 
 size = 1000 
 
@@ -233,6 +232,7 @@ print(f"Computed {N} times {len(outs[0])} MC samples for input factor i.")
 
 with open('Studies/study_dead_MC_serial_interval.pkl', 'wb') as f:
     pickle.dump(size, f)
+    pickle.dump(N, f)
     pickle.dump(input_factor_names, f)
     pickle.dump(coll, f)
     pickle.dump(static_params, f)

@@ -23,6 +23,15 @@ baseline_contact_matrix2 = os.path.join(
 baseline_contact_matrix3 = os.path.join(
     data_dir, "contacts/baseline_other.txt")
 
+minimum_contact_matrix0 = os.path.join(
+    data_dir, "contacts/minimum_home.txt")
+minimum_contact_matrix1 = os.path.join(
+    data_dir, "contacts/minimum_school_pf_eig.txt")
+minimum_contact_matrix2 = os.path.join(
+    data_dir, "contacts/minimum_work.txt")
+minimum_contact_matrix3 = os.path.join(
+    data_dir, "contacts/minimum_other.txt")
+
 location_dict = {0: "home", 1: "school", 2: "work", 3: "other"}
 
 def simulate_model(params):
@@ -105,9 +114,13 @@ def simulate_model(params):
     model.parameters.ContactPatterns.cont_freq_mat[2].baseline = np.loadtxt(baseline_contact_matrix2)
     model.parameters.ContactPatterns.cont_freq_mat[3].baseline = np.loadtxt(baseline_contact_matrix3)
 
+    model.parameters.ContactPatterns.cont_freq_mat[0].minimum = np.loadtxt(minimum_contact_matrix0)
+    model.parameters.ContactPatterns.cont_freq_mat[1].minimum = np.loadtxt(minimum_contact_matrix1)
+    model.parameters.ContactPatterns.cont_freq_mat[2].minimum = np.loadtxt(minimum_contact_matrix2)
+    model.parameters.ContactPatterns.cont_freq_mat[3].minimum = np.loadtxt(minimum_contact_matrix3)
+    
     for i in range(4):
-        model.parameters.ContactPatterns.cont_freq_mat[i].minimum = np.ones((num_groups, num_groups)) * 0
-
+        
         # Define Damping on Contacts
         model.parameters.ContactPatterns.cont_freq_mat.add_damping(
             Damping(coeffs = np.ones((num_groups, num_groups)) * params["damping_coeff_"+location_dict[i]], 

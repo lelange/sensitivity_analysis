@@ -48,6 +48,7 @@ static_params["output_operation"]= "all" #"max"
 # todo max_rist_of_infection_from symptomatic -> twice rist_of_infection...
 
 params_not_age_dependent = [
+    "dummy",
     # "incubation_time", 
     "serial_interval", 
     "infectious_mild_time", 
@@ -58,6 +59,7 @@ params_not_age_dependent = [
 ]
 
 params_not_age_dependent_short = [
+    r"dummy",
     # r"t_{\textnormal{inc}}"
     r"t_{\textnormal{serint}}"
     r"$T_I^R$",
@@ -68,6 +70,7 @@ params_not_age_dependent_short = [
 ]
 
 dist_not_age_dependent = [
+    ot.Uniform(0, 1),
     # ot.Uniform(5.2, 5.2)
     ot.Uniform(3.935, 4.6), #0.5 * 2.67 + 0.5 * 5.2; 0.5 * 4.00 + 0.5 * 5.2;
     ot.Uniform(5.6, 8.4), 
@@ -90,7 +93,7 @@ params_damping = [
 ]
 
 dist_damping = [
-    ot.Uniform(0.0, 0.5),
+    ot.Uniform(0.0, 1.0),
     ot.Uniform(0.0, 1.0),
     ot.Uniform(0.0, 1.0),
     ot.Uniform(0.0, 1.0),
@@ -125,6 +128,7 @@ dist_transition_duration_ages = [
     ot.Uniform(4, 8), ot.Uniform(4, 8), ot.Uniform(4, 8), ot.Uniform(15, 18), ot.Uniform(15, 18), ot.Uniform(10, 12)
 ]
 
+# only needed for parameter estimation and if the dataset starts after the beginning of the dynamics
 initial_numbers_comp = [
     "init_exposed", 
     "init_carrier", 
@@ -136,12 +140,12 @@ initial_numbers_comp = [
 ]
 
 dist_initial_numbers_comp = [
-    ot.Uniform(50, 150), 
-    ot.Uniform(25, 75), 
-    ot.Uniform(10, 30),  
-    ot.Uniform(10, 30),
-    ot.Uniform(0, 20),
-    ot.Uniform(0, 20),
+    ot.Uniform(0, 100), 
+    ot.Uniform(0, 100), 
+    ot.Uniform(0, 100),  
+    ot.Uniform(0, 1),
+    ot.Uniform(0, 1),
+    ot.Uniform(0, 1),
     ot.Uniform(0, 1)
 ]
 
@@ -154,7 +158,6 @@ params_transition_probabilities = [
 ]
 
 params_transition_probabilities_ages = [s + f"_{i}" for s in params_transition_probabilities for i in range(len(groups))]
-
 
 params_transition_duration_short = [  
     r"\rho", 
@@ -172,7 +175,6 @@ dist_transition_probabilities = [
     ot.Uniform(0.0, 0.1), ot.Uniform(0.0, 0.1), ot.Uniform(0.1, 0.18), ot.Uniform(0.1, 0.18), ot.Uniform(0.3, 0.5), ot.Uniform(0.5, 0.7),
 ]
 
-
 input_factor_names = params_not_age_dependent \
                     + params_damping \
                     + params_transition_duration_ages \
@@ -189,27 +191,29 @@ dimension = len(input_factor_names)
 inputDistribution = ot.ComposedDistribution(coll)
 inputDistribution.setDescription(input_factor_names)
 
-size = 1000 
-
-computeSecondOrder = True
+size = 100000 
+computeSecondOrder = False
+start = time.time()
 sie = ot.SobolIndicesExperiment(inputDistribution, size, computeSecondOrder)
-
+print("Sample size: ", sie.getSize())
 # generate samples from the input distribution
 inputDesign = sie.generate()
+
 input_names = inputDistribution.getDescription()
 inputDesign.setDescription(input_factor_names)
 
-print("Sample size: ", inputDesign.getSize())
-
 sim_out = generate_output_daywise(inputDesign, input_factor_names, static_params)
 
+end = time.time()
+simulation_time = end - start
 #outputDesign = ot.Sample(sim_out)
 
-with open('Studies/study_dead_sobol_second_order.pkl', 'wb') as f:
+with open('Studies/study_dead_sobol_100000_dummy.pkl', 'wb') as f:
     pickle.dump(size, f)
     pickle.dump(input_factor_names, f)
     pickle.dump(coll, f)
     pickle.dump(static_params, f)
     pickle.dump(inputDesign, f)
     pickle.dump(sim_out, f)
+    pickle.dump(simulation_time, f)
 
