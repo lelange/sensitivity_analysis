@@ -9,8 +9,16 @@ from utils_SA import simulate_model, generate_output_daywise
 
 import openturns as ot
 import os
+import argparse
 import pickle
 
+parser = argparse.ArgumentParser(description='Setup of the experiment parameters.')
+parser.add_argument('--MC_size', '-s', help="size of Monte Carlo experiment", type=int, default = 1000)
+parser.add_argument('--output_index', '-oi', help="index of compartment for model output", type= int, default=7)
+
+args = parser.parse_args()
+MC_size = args.MC_size
+output_index = args.output_index
 
 # define static parameters of the model
 
@@ -38,7 +46,7 @@ static_params = {
     'days' : days,
     'dt' : dt,
     # which compartment's value should be outputed?
-    'output_index' : [compartments.index("Dead")]
+    'output_index' : [output_index] #compartments.index("Dead")
 }
 
 static_params["output_operation"]= "all" #"max"
@@ -191,7 +199,7 @@ dimension = len(input_factor_names)
 inputDistribution = ot.ComposedDistribution(coll)
 inputDistribution.setDescription(input_factor_names)
 
-size = 100000 
+size = MC_size 
 computeSecondOrder = False
 start = time.time()
 sie = ot.SobolIndicesExperiment(inputDistribution, size, computeSecondOrder)
@@ -206,9 +214,12 @@ sim_out = generate_output_daywise(inputDesign, input_factor_names, static_params
 
 end = time.time()
 simulation_time = end - start
+print(f"Simulation run for {simulation_time} s.")
 #outputDesign = ot.Sample(sim_out)
+saving_path = f"Studies/Sobol_MC_{MC_size}_{compartments[output_index]}.pkl"
+print(f"Study is saved to {saving_path}.")
 
-with open('Studies/study_dead_sobol_100000_dummy.pkl', 'wb') as f:
+with open(saving_path, 'wb') as f:
     pickle.dump(size, f)
     pickle.dump(input_factor_names, f)
     pickle.dump(coll, f)
