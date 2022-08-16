@@ -258,13 +258,18 @@ def simulate_model(params):
 '''
 
 def generate_output_daywise(inputDesign, input_factor_names, static_params):
+    error = 0
     # how many timepoints does the integration return?
     output = np.zeros((len(inputDesign), static_params["days"]+1))
     
     for i in range(len(inputDesign)):
         result = simulate_model({**dict(zip(input_factor_names, inputDesign[i])), **static_params})
-        output[i] = result
-        
+        try:
+            output[i] = result
+        except:
+            print(f"Error: {result.shape}")
+            error += 1
+    print("Number of errrors:", error)    
     return output
 
 
