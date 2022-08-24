@@ -15,7 +15,7 @@ import argparse
 
 from varstool import VARS, Model
 
-path_simulation_result = 'Studies/Sobol_MC_100000_InfectedDead.pkl'
+path_simulation_result = 'Studies/Sobol_MC_1_InfectedDead.pkl'
 path_data = 'data/worldometer_data.txt'
 
 with open(path_simulation_result, 'rb') as f:
@@ -31,23 +31,21 @@ for i in range(len(input_factor_names)):
 
 experiment = VARS(
                 parameters     = parameters,
-                num_stars      = 50,
-                delta_h        = 0.1,
+                num_stars      = 500,
+                delta_h        = 0.01,
                 ivars_scales   = (0.1, 0.3, 0.5),
                 sampler        = 'lhs',
                 seed           = 123456789,
                 bootstrap_flag = True,
-                bootstrap_size = 100,
-                bootstrap_ci   = 0.9,
+                bootstrap_size = 1000,
+                bootstrap_ci   = 0.95,
                 grouping_flag  = True,
                 num_grps = 3,
                 report_verbose = True,
                 )
 
-
-
-save_star = False
-run_model = False
+save_star = True
+run_model = True
 
 if save_star:
     star_points = experiment.generate_star()
@@ -84,7 +82,8 @@ ex_modelframe = pd.read_csv('Studies/VARS/star_points_with_output.csv', index_co
 
 experiment.run_offline(ex_modelframe)
 
-(experiment.output).to_csv('Studies/VARS/VARS_output.csv', index = False )
+with open('Studies/VARS/VARS_experiment.pkl', 'wb') as f: 
+    pickle.dump(experiment, f)
 
 cols = experiment.parameters.keys()
 experiment.ivars[cols].to_csv('Studies/VARS/SA_results.csv', index = False )
@@ -93,23 +92,26 @@ experiment.ivars[cols].to_csv('Studies/VARS/SA_results.csv', index = False )
 ivars_scale = 0.5 # Choose the scale range of interest, e.g., 0.1, 0.3, or 0.5
 
 cols = experiment.parameters.keys()                     
-fig_bar = plt.figure(figsize=(10,5))
+
+fig_bar = plt.figure(figsize=(15,10))
 plt.gca().bar(cols, experiment.ivars.loc[pd.IndexSlice[ ivars_scale ]][cols], color='gold')
-plt.gca().set_title (r'Integrated variogram Across a Range of Scales', fontsize = 15)
+plt.gca().set_title (r'Integrated variogram Across a Range of Scales', fontsize = 10)
 plt.gca().set_ylabel(r'IVARS-50 (Total-Variogram Effect)', fontsize = 13)
-plt.gca().set_xlabel(r'Model Parameter', fontsize=13)
-plt.gca().tick_params(labelrotation=45)
+plt.gca().set_xlabel(r'Model Parameter', fontsize=6)
+plt.gca().tick_params(labelrotation=90)
 plt.gca().grid()
 plt.gca().set_yscale('linear')
+plt.tight_layout()
 
-fig_bar = plt.figure(figsize=(10,5))
+fig_bar = plt.figure(figsize=(15,10))
 plt.gca().bar(cols, experiment.ivars.loc[pd.IndexSlice[ ivars_scale ]][cols], color='gold')
-plt.gca().set_title (r'Integrated variogram Across a Range of Scales $[log-scale]$', fontsize = 15)
+plt.gca().set_title (r'Integrated variogram Across a Range of Scales $[log-scale]$', fontsize = 10)
 plt.gca().set_ylabel(r'IVARS-50 (Total-Variogram Effect)', fontsize = 13)
-plt.gca().set_xlabel(r'Model Parameter', fontsize=13)
-plt.gca().tick_params(labelrotation=45)
+plt.gca().set_xlabel(r'Model Parameter', fontsize=6)
+plt.gca().tick_params(labelrotation=90)
 plt.gca().grid()
 plt.gca().set_yscale('log')
+plt.tight_layout()
 plt.show()
 
 plt.savefig("plots/VARS.png")

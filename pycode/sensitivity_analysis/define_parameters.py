@@ -14,7 +14,7 @@ import pickle
 
 parser = argparse.ArgumentParser(description='Setup of the experiment parameters.')
 parser.add_argument('--MC_size', '-s', help="size of Monte Carlo experiment", type=int, default = 1000)
-parser.add_argument('--output_index', '-oi', help="index of compartment for model output", type= int, default=7)
+parser.add_argument('--output_index', '-oi', help="index of compartment(s) for model output", type= int, nargs='+')
 
 args = parser.parse_args()
 MC_size = args.MC_size
@@ -30,9 +30,9 @@ groups = ['0-4', '5-14', '15-34', '35-59', '60-79', '80+']
 populations = [40000, 70000, 190000, 290000, 180000, 60000] 
 
 days = 100 # number of days to simulate
-start_day = 1
-start_month = 1
-start_year = 2019
+start_day = 18
+start_month = 3
+start_year = 2020
 starting_day = (date(start_year, start_month, start_day) - date(start_year, 1, 1)).days
 dt = 0.1
 num_groups = len(groups)
@@ -46,58 +46,60 @@ static_params = {
     'days' : days,
     'dt' : dt,
     # which compartment's value should be outputed?
-    'output_index' : [output_index] #compartments.index("Dead")
+    'output_index' : output_index #compartments.index("Dead")
 }
 
 static_params["output_operation"]= "all" #"max"
 
 # define input factors and their distributions
-# TODO define "incubation_time" and "serial_interval" later
 # todo max_rist_of_infection_from symptomatic -> twice rist_of_infection...
 
 params_not_age_dependent = [
     "dummy",
-    # "incubation_time", 
+    "incubation_time", 
     "serial_interval", 
     "infectious_mild_time", 
     "hospitalized_to_ICU_time", 
-    # "relative_carrier_infectability",
     "risk_of_infection_from_symptomatic",
     "max_risk_of_infection_from_symptomatic",
+    "seasonality",
+    "test_and_trace_capacity" # multiplier of #tnt_capacity = np.sum(populations)*100.0/100000*(10.0/7)
 ]
 
 params_not_age_dependent_short = [
-    r"dummy",
-    # r"t_{\textnormal{inc}}"
+    "dummy",
+    r"t_{\textnormal{inc}}"
     r"t_{\textnormal{serint}}"
     r"$T_I^R$",
-    r"$T_H^U$",
-    # r"rel. C infec.",  
+    r"$T_H^U$", 
     r"$\tilde{\beta}_{\textnormal{min}}$",
     r"$\tilde{\beta}_{\textnormal{max}}$",
+    r"k",
+    "tt_capacity"
 ]
 
 dist_not_age_dependent = [
     ot.Uniform(0, 1),
-    # ot.Uniform(5.2, 5.2)
-    ot.Uniform(3.935, 4.6), #0.5 * 2.67 + 0.5 * 5.2; 0.5 * 4.00 + 0.5 * 5.2;
+    ot.Uniform(4.1, 7.0), # before 5.2
+    ot.Uniform(0.63, 0.87), #0.5 * 2.67 + 0.5 * 5.2; 0.5 * 4.00 + 0.5 * 5.2; before (3.935, 4.6)
     ot.Uniform(5.6, 8.4), 
-    ot.Uniform(3, 7), 
-    # ot.Uniform(1, 1), 
+    ot.Uniform(3, 7),  
     ot.Uniform(0.1, 0.3), 
     ot.Uniform(0.3, 0.5), 
+    ot.Uniform(0.1, 0.3), 
+    ot.Uniform(0.8, 1.2)
 ]
 
 params_damping = [
-    'damping_coeff_home',
-    'damping_coeff_school',
-    'damping_coeff_work',
-    'damping_coeff_other',
-
-    'damping_time_home',
-    'damping_time_school',
-    'damping_time_work',
-    'damping_time_other',
+    'NPI_strength_home',
+    'NPI_strength_school',
+    'NPI_strength_work',
+    'NPI_strength_other',
+    #
+    'NPI_start_day_home',
+    'NPI_start_day_school',
+    'NPI_start_day_work',
+    'NPI_start_day_other',
 ]
 
 dist_damping = [
@@ -105,7 +107,7 @@ dist_damping = [
     ot.Uniform(0.0, 1.0),
     ot.Uniform(0.0, 1.0),
     ot.Uniform(0.0, 1.0),
-
+    #
     ot.Uniform(0.0, days),
     ot.Uniform(0.0, days),
     ot.Uniform(0.0, days),
@@ -141,24 +143,25 @@ initial_numbers_comp = [
     "init_exposed", 
     "init_carrier", 
     "init_infected", 
-    "init_hospitalized", 
-    "init_ICU", 
-    "init_recovered",
-    "init_dead"
+    #"init_hospitalized", 
+    #"init_ICU", 
+    #"init_recovered",
+    #"init_dead"
 ]
 
 dist_initial_numbers_comp = [
-    ot.Uniform(0, 100), 
-    ot.Uniform(0, 100), 
-    ot.Uniform(0, 100),  
-    ot.Uniform(0, 1),
-    ot.Uniform(0, 1),
-    ot.Uniform(0, 1),
-    ot.Uniform(0, 1)
+    ot.Uniform(0, 200), 
+    ot.Uniform(0, 200), 
+    ot.Uniform(120, 130),  
+    #ot.Uniform(0, 1),
+    #ot.Uniform(0, 1),
+    #ot.Uniform(0, 0.1),
+    #ot.Uniform(0, 0.001)
 ]
 
 params_transition_probabilities = [ 
     "infection_probability_from_contact", 
+    "relative_carrier_infectability",
     "asymptotic_cases_per_infectious", 
     "hospitalized_cases_per_infectious", 
     "ICU_cases_per_hospitalized",
@@ -169,6 +172,7 @@ params_transition_probabilities_ages = [s + f"_{i}" for s in params_transition_p
 
 params_transition_duration_short = [  
     r"\rho", 
+    r"rel. C infec.",
     r"$\mu_C^R$", 
     r"$\mu_I^H$", 
     r"$\mu_H^U$",
@@ -177,6 +181,7 @@ params_transition_duration_short = [
 
 dist_transition_probabilities = [
     ot.Uniform(0.02, 0.04), ot.Uniform(0.05, 0.07), ot.Uniform(0.05, 0.07), ot.Uniform(0.05, 0.07), ot.Uniform(0.08, 0.1), ot.Uniform(0.15, 0.2),
+    ot.Uniform(0.5, 1.5), ot.Uniform(0.5, 1.5), ot.Uniform(0.5, 1.5), ot.Uniform(0.5, 1.5), ot.Uniform(0.5, 1.5), ot.Uniform(0.5, 1.5),
     ot.Uniform(0.2, 0.3), ot.Uniform(0.2, 0.3), ot.Uniform(0.15, 0.25), ot.Uniform(0.15, 0.25), ot.Uniform(0.15, 0.25), ot.Uniform(0.15, 0.25),
     ot.Uniform(0.006, 0.009), ot.Uniform(0.006, 0.009), ot.Uniform(0.015, 0.023), ot.Uniform(0.049, 0.074), ot.Uniform(0.15, 0.18), ot.Uniform(0.2, 0.25),
     ot.Uniform(0.05, 0.1), ot.Uniform(0.05, 0.1), ot.Uniform(0.05, 0.1), ot.Uniform(0.1, 0.2), ot.Uniform(0.25, 0.35), ot.Uniform(0.35, 0.45),
@@ -216,7 +221,7 @@ end = time.time()
 simulation_time = end - start
 print(f"Simulation run for {simulation_time} s.")
 #outputDesign = ot.Sample(sim_out)
-saving_path = f"Studies/Sobol_MC_{MC_size}_{compartments[output_index]}.pkl"
+saving_path = f'Studies/Sobol_MC_{MC_size}_{"".join(compartments[i] for i in output_index)}.pkl'
 print(f"Study is saved to {saving_path}.")
 
 with open(saving_path, 'wb') as f:

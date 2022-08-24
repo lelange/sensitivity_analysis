@@ -6,6 +6,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, date
 import os
+import json
+import time
 
 import warnings
 
@@ -58,26 +60,28 @@ def simulate_model(params):
     # Set parameters
     for i in range(num_groups):
         # Compartment transition duration
-        model.parameters.IncubationTime[AgeGroup(i)] = 5.2 #params["incubation_time"]
+        model.parameters.IncubationTime[AgeGroup(i)] = params["incubation_time"]
         model.parameters.InfectiousTimeMild[AgeGroup(i)] = params["infectious_mild_time"]
-        model.parameters.SerialInterval[AgeGroup(i)] = params["serial_interval"]
+        # serial interval is modelled as fraction of incubation time
+        model.parameters.SerialInterval[AgeGroup(i)] = params["incubation_time"] * params["serial_interval"]
         model.parameters.HospitalizedToHomeTime[AgeGroup(i)] = params["hospitalized_to_home_time"+f"_{i}"]
         model.parameters.HomeToHospitalizedTime[AgeGroup(i)] = params["home_to_hospitalized_time"+f"_{i}"]
         model.parameters.HospitalizedToICUTime[AgeGroup(i)] = params["hospitalized_to_ICU_time"]
         model.parameters.ICUToHomeTime[AgeGroup(i)] = params["ICU_to_home_time"+f"_{i}"]
         model.parameters.ICUToDeathTime[AgeGroup(i)] = params["ICU_to_death_time"+f"_{i}"]
 
-        t_inf_asymp = 1.0 / (0.5 / (5.2 - params["serial_interval"])) + 0.5 * params["infectious_mild_time"]
+        # set infectious time asymptomatic according to paper
+        t_inf_asymp = 1.0 / (0.5 / (params["incubation_time"] - params["incubation_time"] * params["serial_interval"])) + 0.5 * params["infectious_mild_time"]
         model.parameters.InfectiousTimeAsymptomatic[AgeGroup(i)] = t_inf_asymp
 
         # Initial number of peaople in each compartment
         model.populations[AgeGroup(i), Index_InfectionState(State.Exposed)] = params["init_exposed"]
         model.populations[AgeGroup(i), Index_InfectionState(State.Carrier)] = params["init_carrier"]
         model.populations[AgeGroup(i), Index_InfectionState(State.Infected)] = params["init_infected"]
-        model.populations[AgeGroup(i), Index_InfectionState(State.Hospitalized)] = params["init_hospitalized"]
-        model.populations[AgeGroup(i), Index_InfectionState(State.ICU)] = params["init_ICU"]
-        model.populations[AgeGroup(i), Index_InfectionState(State.Recovered)] = params["init_recovered"]
-        model.populations[AgeGroup(i), Index_InfectionState(State.Dead)] = params["init_dead"]
+        model.populations[AgeGroup(i), Index_InfectionState(State.Hospitalized)] = 0#params["init_hospitalized"]
+        model.populations[AgeGroup(i), Index_InfectionState(State.ICU)] = 0#params["init_ICU"]
+        model.populations[AgeGroup(i), Index_InfectionState(State.Recovered)] = 0#params["init_recovered"]
+        model.populations[AgeGroup(i), Index_InfectionState(State.Dead)] = 0#params["init_dead"]
         model.populations.set_difference_from_group_total_AgeGroup((AgeGroup(i), Index_InfectionState(State.Susceptible)), params["populations"][i])
         # print(model.populations[AgeGroup(i), Index_InfectionState(State.Exposed)].value)
         # print(model.populations[AgeGroup(i), Index_InfectionState(State.Carrier)].value)
@@ -93,7 +97,7 @@ def simulate_model(params):
         
 
          # Compartment transition propabilities
-        model.parameters.RelativeCarrierInfectability[AgeGroup(i)] = 1. #params["relative_carrier_infectability"]  
+        model.parameters.RelativeCarrierInfectability[AgeGroup(i)] = params["relative_carrier_infectability"+f"_{i}"]  
         model.parameters.InfectionProbabilityFromContact[AgeGroup(i)] = params["infection_probability_from_contact"+f"_{i}"]
         model.parameters.AsymptomaticCasesPerInfectious[AgeGroup(i)] = params["asymptotic_cases_per_infectious"+f"_{i}"]  # 0.01-0.16
         model.parameters.RiskOfInfectionFromSymptomatic[AgeGroup(i)] = params["risk_of_infection_from_symptomatic"]  # 0.1-0.3
@@ -102,7 +106,11 @@ def simulate_model(params):
         model.parameters.DeathsPerICU[AgeGroup(i)] = params["deaths_per_ICU"+f"_{i}"]  # 0.15-0.77
         model.parameters.MaxRiskOfInfectionFromSymptomatic[AgeGroup(i)] = params["max_risk_of_infection_from_symptomatic"] # 0.3-0.5
 
+    model.parameters.Seasonality.value = params["seasonality"]
     model.parameters.StartDay = params["start_day"]
+
+    tnt_capacity = np.sum(params["populations"])*(10/7)/100000
+    model.parameters.TestAndTraceCapacity.value = tnt_capacity * params["test_and_trace_capacity"]
 
     # set contact rates and emulate some mitigations
     # set contact frequency matrix
@@ -123,8 +131,8 @@ def simulate_model(params):
         
         # Define Damping on Contacts
         model.parameters.ContactPatterns.cont_freq_mat.add_damping(
-            Damping(coeffs = np.ones((num_groups, num_groups)) * params["damping_coeff_"+location_dict[i]], 
-            t = params["damping_time_"+location_dict[i]], level = 0, type = 0))
+            Damping(coeffs = np.ones((num_groups, num_groups)) * params["NPI_strength_"+location_dict[i]], 
+            t = params["NPI_start_day_"+location_dict[i]], level = 0, type = 0))
    
     model.apply_constraints()
 
@@ -152,7 +160,7 @@ def simulate_model(params):
     # elif params["output_operation"] == "mean":
     #     output = np.mean(output, axis = 0)
 
-    output = np.squeeze(output)
+    #output = np.squeeze(output)
     
     return output
     
@@ -259,8 +267,9 @@ def simulate_model(params):
 
 def generate_output_daywise(inputDesign, input_factor_names, static_params):
     error = 0
+    timestr = time.strftime("%Y%m%d-%H%M%S")
     # how many timepoints does the integration return?
-    output = np.zeros((len(inputDesign), static_params["days"]+1))
+    output = np.zeros((len(inputDesign), static_params["days"]+1, len(static_params["output_index"])))
     
     for i in range(len(inputDesign)):
         result = simulate_model({**dict(zip(input_factor_names, inputDesign[i])), **static_params})
@@ -268,6 +277,16 @@ def generate_output_daywise(inputDesign, input_factor_names, static_params):
             output[i] = result
         except:
             print(f"Error: {result.shape}")
+            f = open('logs/simulation_errors.txt', 'w+' )
+            f.write(timestr)
+            f.write(f"i = {i}")
+            f.write(f"inputDesign = \n{inputDesign[i]}")
+            f.write(f"input factor names = \n {input_factor_names}")
+            f.write(f"output = \n {result}")
+            f.write(f"-------------------------------------------------")
+            f.close()
+            with open('simulation_errors.json', 'w+') as fp:
+                json.dump(dict(zip(input_factor_names, inputDesign[i])), fp)
             error += 1
     print("Number of errrors:", error)    
     return output
