@@ -86,7 +86,7 @@ dist_not_age_dependent = [
     ot.Uniform(3, 7),  
     ot.Uniform(0.1, 0.3), 
     ot.Uniform(0.3, 0.5), 
-    ot.Uniform(0.1, 0.3), 
+    ot.Uniform(-0.3, 0.3), 
     ot.Uniform(0.8, 1.2)
 ]
 

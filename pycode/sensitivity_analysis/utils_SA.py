@@ -75,9 +75,9 @@ def simulate_model(params):
         model.parameters.InfectiousTimeAsymptomatic[AgeGroup(i)] = t_inf_asymp
 
         # Initial number of peaople in each compartment
-        model.populations[AgeGroup(i), Index_InfectionState(State.Exposed)] = params["init_exposed"]
-        model.populations[AgeGroup(i), Index_InfectionState(State.Carrier)] = params["init_carrier"]
-        model.populations[AgeGroup(i), Index_InfectionState(State.Infected)] = params["init_infected"]
+        model.populations[AgeGroup(i), Index_InfectionState(State.Exposed)] = params["init_exposed"]/num_groups
+        model.populations[AgeGroup(i), Index_InfectionState(State.Carrier)] = params["init_carrier"]/num_groups
+        model.populations[AgeGroup(i), Index_InfectionState(State.Infected)] = params["init_infected"]/num_groups
         model.populations[AgeGroup(i), Index_InfectionState(State.Hospitalized)] = 0#params["init_hospitalized"]
         model.populations[AgeGroup(i), Index_InfectionState(State.ICU)] = 0#params["init_ICU"]
         model.populations[AgeGroup(i), Index_InfectionState(State.Recovered)] = 0#params["init_recovered"]
@@ -109,7 +109,8 @@ def simulate_model(params):
     model.parameters.Seasonality.value = params["seasonality"]
     model.parameters.StartDay = params["start_day"]
 
-    tnt_capacity = np.sum(params["populations"])*(10/7)/100000
+    # Convert 7day-Incidenz of 10 into daily infections
+    tnt_capacity = np.sum(params["populations"])*0.00142857142 #np.sum(params["populations"])*100/100000/7 * 10 
     model.parameters.TestAndTraceCapacity.value = tnt_capacity * params["test_and_trace_capacity"]
 
     # set contact rates and emulate some mitigations
@@ -277,6 +278,7 @@ def generate_output_daywise(inputDesign, input_factor_names, static_params):
             output[i] = result
         except:
             print(f"Error: {result.shape}")
+            error += 1
             f = open('logs/simulation_errors.txt', 'w+' )
             f.write(timestr)
             f.write(f"i = {i}")
@@ -287,7 +289,7 @@ def generate_output_daywise(inputDesign, input_factor_names, static_params):
             f.close()
             with open('simulation_errors.json', 'w+') as fp:
                 json.dump(dict(zip(input_factor_names, inputDesign[i])), fp)
-            error += 1
+            
     print("Number of errrors:", error)    
     return output
 
