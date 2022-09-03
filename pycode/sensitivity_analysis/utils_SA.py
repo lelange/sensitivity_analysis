@@ -296,7 +296,7 @@ def generate_output_daywise(inputDesign, input_factor_names, static_params):
 
 def generate_output_daywise_one_factor(inputDesign, input_factor_name, static_params):
     # how many timepoints does the integration return?
-    output = np.zeros((len(inputDesign), static_params["days"]+1))
+    output = np.zeros((len(inputDesign), static_params["days"]+1, len(static_params["output_index"])))
     
     for i in range(len(inputDesign)):
         static_params.update({input_factor_name: inputDesign[i][0]})

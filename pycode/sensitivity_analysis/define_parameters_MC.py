@@ -10,7 +10,9 @@ from utils_SA import simulate_model, generate_output_daywise_one_factor
 import openturns as ot
 import os
 import pickle
+import argparse
 
+'''
 
 # define static parameters of the model
 
@@ -188,7 +190,48 @@ dimension = len(input_factor_names)
 
 size = 1000 
 
-input_factor_i = 'serial_interval'
+'''
+from inputFactorSpace import input_factor_names, coll
+
+parser = argparse.ArgumentParser(description='Setup of the experiment parameters for sampling to visualize S_i.')
+parser.add_argument('--MC_size_outer', '-no', help="outer sample size", type=int, default = 10)
+parser.add_argument('--MC_size_inner', '-ni', help="inner sample size", type=int, default = 100)
+parser.add_argument('--output_index', '-oi', help="index of compartment(s) for model output", type= int, nargs='+')
+
+args = parser.parse_args()
+N_inner = args.MC_size_inner
+N_outer = args.MC_size_outer
+output_index = args.output_index
+
+# Define Comartment names
+compartments = ['Susceptible', 'Exposed', 'Carrier', 'Infected', 'Hospitalized', 'ICU', 'Recovered', 'Dead']
+# Define age Groups
+groups = ['0-4', '5-14', '15-34', '35-59', '60-79', '80+']
+# Define population of age groups
+populations = [40000, 70000, 190000, 290000, 180000, 60000] 
+
+days = 100 # number of days to simulate
+start_day = 18
+start_month = 3
+start_year = 2020
+starting_day = (date(start_year, start_month, start_day) - date(start_year, 1, 1)).days
+dt = 0.1
+num_groups = len(groups)
+num_compartments = len(compartments)
+
+static_params = {
+    'num_groups': num_groups, 
+    'num_compartments': num_compartments,
+    'populations': populations,
+    'start_day' : (date(start_year, start_month, start_day) - date(start_year, 1, 1)).days,
+    'days' : days,
+    'dt' : dt,
+    # which compartment's value should be outputed?
+    'output_index' : output_index #compartments.index("Dead")
+}
+static_params["output_operation"]= "all" #"max"
+
+input_factor_i = 'deaths_per_ICU_5' #'serial_interval'
 i = input_factor_names.index(input_factor_i)
 
 ##set coll ot distribution of X_{~i}
@@ -203,21 +246,21 @@ inputDistribution.setDescription(input_factor_names)
 ot.RandomGenerator.SetSeed(0)
 # create random points for all factors except i
 # random point for for all factors except i
-N = 10
-MCexperiment = ot.MonteCarloExperiment(inputDistribution, N)
+N_outer = 10
+MCexperiment = ot.MonteCarloExperiment(inputDistribution, N_outer)
 
 MCinputDesign = MCexperiment.generate()
 MCinputDesign.setDescription(input_factor_names)
 
-size = 100
-N = len(MCinputDesign)
+N_inner = 100
+#N = len(MCinputDesign)
 
-print(f"Computed {N} MC samples for all but input factor i.")
+print(f"Computed {N_outer} MC samples for all but input factor i.")
 
 outs = []
-for n in range(N):
+for n in range(N_outer):
     fixed_params_n = dict(zip(input_factor_names, MCinputDesign[n]))
-    MCexperiment_i = ot.MonteCarloExperiment(dist_i, size)
+    MCexperiment_i = ot.MonteCarloExperiment(dist_i, N_inner)
     # sample input factor i
     MCinputDesign_i = MCexperiment_i.generate()
     print(len(MCinputDesign_i))
@@ -226,13 +269,14 @@ for n in range(N):
     sim_out = generate_output_daywise_one_factor(MCinputDesign_i, input_factor_i, {**static_params, **fixed_params_n})
     # save value of last day
     outs.append(sim_out[:, -1])
-print(f"Computed {N} times {len(outs[0])} MC samples for input factor i.")
+print(f"Computed {N_outer} times {len(outs[0])} MC samples for input factor i.")
 
+saving_path = f'Studies/MC_{input_factor_i}_{N_outer}_{N_inner}_{"".join(compartments[i] for i in output_index)}.pkl'
+print(f"Study is saved to {saving_path}.")
 
-
-with open('Studies/study_dead_MC_serial_interval.pkl', 'wb') as f:
-    pickle.dump(size, f)
-    pickle.dump(N, f)
+with open(saving_path, 'wb') as f:
+    pickle.dump(N_outer, f)
+    pickle.dump(N_inner, f)
     pickle.dump(input_factor_names, f)
     pickle.dump(coll, f)
     pickle.dump(static_params, f)
