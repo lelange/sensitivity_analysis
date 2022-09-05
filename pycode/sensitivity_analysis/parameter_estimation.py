@@ -160,7 +160,7 @@ optimizer_bfgs = optimize.ScipyOptimizer(method="l-bfgs-b")
 optimizer_tnc = optimize.ScipyOptimizer(method="TNC")
 
 # set number of starts
-n_starts = 15
+n_starts = 100
 # save optimizer trace
 history_options = pypesto.HistoryOptions(trace_record=True)
 
@@ -187,7 +187,7 @@ sampler = sample.AdaptiveMetropolisSampler()
 result = sample.sample(
     problem=problem1,
     sampler=sampler,
-    n_samples=10000,
+    n_samples=100000,
     result=result1_tnc,
 )
 
@@ -242,7 +242,7 @@ tick_range = (np.arange(int(days / 10) + 1) * 10)
 tick_range[-1] -= 1
 fig, ax = plt.subplots()
 ax.plot(simulation[:, 0], 'o-', markersize = 3, label='simulation dead', color="darkorange") 
-ax.plot(simulation[:, 1], 'o-', markersize = 3, label='simulation infected (cumsum)', color="darkgreen") 
+ax.plot(simulation[:, 1], 'o-', markersize = 3, label='simulation infected', color="darkgreen") 
 ax.plot(simulation[:, 2], 'o-', markersize = 3, label='simulation recovered', color="navy") 
 ax.plot(dead_cases, 'o-', markersize = 3, label='measurement dead', color = "bisque")
 ax.plot(infected_cases, 'o-', markersize = 3, label='measurement infected', color = "limegreen")
