@@ -75,6 +75,7 @@ infected_cases = np.array(data_dict['currently_infected'][start_dataset:number_o
 # load file for parameter importance and add to input factor dataframe
 df_fixing = pd.read_csv('results/dgsm_vi_important.csv', index_col = 0)
 df_input_factors['fix_by_vi']=[df_fixing.loc[name, 'vi'] for name in input_factor_names]
+df_input_factors['use_all'] = [False for name in input_factor_names]
 #df_input_factors = df_input_factors.set_index('Name', drop = True)
 
 def fix_factors(df_input_factors, column_to_fix = 'fix_by_vi', fixed_value = 'mean'):
@@ -82,17 +83,21 @@ def fix_factors(df_input_factors, column_to_fix = 'fix_by_vi', fixed_value = 'me
     if fixed_value == 'mean':
         dict_fixed_factors = df_input_factors[df_input_factors[column_to_fix]].loc[:, 'ot dist'].apply(lambda x : x.getMean()[0]).to_dict()
     if fixed_value == 'random':
-        df_input_factors[df_input_factors[column_to_fix]].loc[:, 'ot dist'].apply(lambda x : float(np.array(x.getSample(1)))).to_dict()
+        dict_fixed_factors = df_input_factors[df_input_factors[column_to_fix]].loc[:, 'ot dist'].apply(lambda x : float(np.array(x.getSample(1)))).to_dict()
     lower_bounds = list(df_input_factors[df_input_factors[column_to_fix] == False].loc[:, 'lower_bounds'].values)
     upper_bounds = list(df_input_factors[df_input_factors[column_to_fix] == False].loc[:, 'upper_bounds'].values)
     varying_input_factors = list(df_input_factors[df_input_factors[column_to_fix] == False].index)
     return dict_fixed_factors, lower_bounds, upper_bounds, varying_input_factors
 
-dict_fixed_factors, lower_bounds, upper_bounds, varying_input_factors = fix_factors(df_input_factors, column_to_fix = 'fix_by_vi', fixed_value = 'mean')
+dict_fixed_factors, lower_bounds, upper_bounds, varying_input_factors = fix_factors(df_input_factors, column_to_fix = 'use_all', fixed_value = 'mean')
 # assumption that unknown cases are 3 times as much. Match infected numbers to observed.
-dict_fixed_factors['init_exposed'] = infected_cases[0]
-dict_fixed_factors['init_carrier'] = infected_cases[0]
-dict_fixed_factors['init_infected'] = infected_cases[0]
+#dict_fixed_factors['init_exposed'] = infected_cases[0]
+#dict_fixed_factors['init_carrier'] = infected_cases[0]
+#dict_fixed_factors['init_infected'] = infected_cases[0]
+
+print(dict_fixed_factors)
+print(len(input_factor_names) - len(varying_input_factors))
+print(len(varying_input_factors))
 
 def simulate_model_logParam(theta, 
                             param_names = varying_input_factors, 
@@ -157,22 +162,23 @@ problem1 = pypesto.Problem(objective=objective1, lb=lb, ub=ub)
 
 # create different optimizers
 optimizer_bfgs = optimize.ScipyOptimizer(method="l-bfgs-b")
-optimizer_tnc = optimize.ScipyOptimizer(method="TNC")
+optimizer_tnc = optimize.ScipyOptimizer()
+optimizer_fides = optimize.FidesOptimizer()
 
 # set number of starts
-n_starts = 100
+n_starts = 200
 # save optimizer trace
 history_options = pypesto.HistoryOptions(trace_record=True)
 
 start = time.time()
 # Run optimizaitons for different optimzers
-# result1_bfgs = optimize.minimize(
-#     problem=problem1,
-#     optimizer=optimizer_bfgs,
-#     n_starts=n_starts,
-#     history_options=history_options,
-#     filename=None,
-# )
+# result1_fides = optimize.minimize(
+#      problem=problem1,
+#      optimizer=optimizer_fides,
+#      n_starts=n_starts,
+#      history_options=history_options,
+#      filename=None,
+#  )
 
 result1_tnc = optimize.minimize(
     problem=problem1,
@@ -203,8 +209,8 @@ store.write_result(
 )
 
 print("It needed ", end - start, " seconds.")
-#print("BFGS")
-#print((result1_bfgs.optimize_result.as_list()))
+#print("Fides")
+#print((result1_fides.optimize_result.as_list()))
 print("TNC")
 print((result1_tnc.optimize_result.as_list()))
 print("Data_____________________________")

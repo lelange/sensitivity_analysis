@@ -191,7 +191,7 @@ dimension = len(input_factor_names)
 size = 1000 
 
 '''
-from inputFactorSpace import input_factor_names, coll
+from inputFactorSpace import input_factor_names, distributions
 
 parser = argparse.ArgumentParser(description='Setup of the experiment parameters for sampling to visualize S_i.')
 parser.add_argument('--MC_size_outer', '-no', help="outer sample size", type=int, default = 10)
@@ -231,40 +231,43 @@ static_params = {
 }
 static_params["output_operation"]= "all" #"max"
 
-input_factor_i = 'deaths_per_ICU_5' #'serial_interval'
+input_factor_i = 'serial_interval' #'deaths_per_ICU_5' #
 i = input_factor_names.index(input_factor_i)
 
-##set coll ot distribution of X_{~i}
+##get collection ot distribution of X_{~i}
 # remove name from list
 input_factor_names.pop(i)
 # distribution of X_{~i}, pop returns distribution of factor i
-dist_i = coll.pop(i)
+dist_i = distributions.pop(i)
 
-inputDistribution = ot.ComposedDistribution(coll)
+inputDistribution = ot.ComposedDistribution(distributions)
 inputDistribution.setDescription(input_factor_names)
 
 ot.RandomGenerator.SetSeed(0)
 # create random points for all factors except i
 # random point for for all factors except i
-N_outer = 10
+# N_outer = 10
 MCexperiment = ot.MonteCarloExperiment(inputDistribution, N_outer)
 
 MCinputDesign = MCexperiment.generate()
 MCinputDesign.setDescription(input_factor_names)
 
-N_inner = 100
+# N_inner = 100
 #N = len(MCinputDesign)
+
+# it is always the sampe, if the seed is not changed
+MCexperiment_i = ot.MonteCarloExperiment(dist_i, N_inner)
+# sample input factor i
+MCinputDesign_i = MCexperiment_i.generate()
+print(len(MCinputDesign_i))
+print(type(MCinputDesign_i))
 
 print(f"Computed {N_outer} MC samples for all but input factor i.")
 
 outs = []
 for n in range(N_outer):
     fixed_params_n = dict(zip(input_factor_names, MCinputDesign[n]))
-    MCexperiment_i = ot.MonteCarloExperiment(dist_i, N_inner)
-    # sample input factor i
-    MCinputDesign_i = MCexperiment_i.generate()
-    print(len(MCinputDesign_i))
-    print(type(MCinputDesign_i))
+    
     # simulate model on different samples for i, other values fixed
     sim_out = generate_output_daywise_one_factor(MCinputDesign_i, input_factor_i, {**static_params, **fixed_params_n})
     # save value of last day
@@ -278,7 +281,7 @@ with open(saving_path, 'wb') as f:
     pickle.dump(N_outer, f)
     pickle.dump(N_inner, f)
     pickle.dump(input_factor_names, f)
-    pickle.dump(coll, f)
+    pickle.dump(distributions, f)
     pickle.dump(static_params, f)
     pickle.dump(input_factor_i, f)
     pickle.dump(dist_i, f)
