@@ -129,7 +129,6 @@ def simulate_model(params):
     model.parameters.ContactPatterns.cont_freq_mat[3].minimum = np.loadtxt(minimum_contact_matrix3)
     
     for i in range(4):
-        
         # Define Damping on Contacts
         model.parameters.ContactPatterns.cont_freq_mat.add_damping(
             Damping(coeffs = np.ones((num_groups, num_groups)) * params["NPI_strength_"+location_dict[i]], 
@@ -273,6 +272,8 @@ def generate_output_daywise(inputDesign, input_factor_names, static_params):
     output = np.zeros((len(inputDesign), static_params["days"]+1, len(static_params["output_index"])))
     
     for i in range(len(inputDesign)):
+        #j = input_factor_names.index('NPI_strength_work')
+        #print(f"i: {i}, strength= { inputDesign[i, j]}")
         result = simulate_model({**dict(zip(input_factor_names, inputDesign[i])), **static_params})
         try:
             output[i] = result
