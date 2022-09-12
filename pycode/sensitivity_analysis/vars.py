@@ -44,7 +44,7 @@ experiment = VARS(
                 )
 
 save_star = False
-run_model = False
+run_model = True
 
 if save_star:
     star_points = experiment.generate_star()
@@ -56,7 +56,7 @@ if run_model:
     print("Ncols: ", ncols, len(input_factor_names))
     input_data = np.loadtxt("Studies/VARS/star_points.csv", delimiter=',', skiprows=1, usecols=range(3,ncols))
     print(input_data.shape)
-    static_params["output_index"] = [7]
+    static_params["output_index"] = [3]
 
     start = time.time()
     output_data = generate_output_daywise(input_data, input_factor_names, static_params)
@@ -68,12 +68,12 @@ if run_model:
 
     csv_input = pd.read_csv("Studies/VARS/star_points.csv")
     # save last day
-    csv_input['output max dead'] = output_data[:, -1]
-    csv_input.to_csv('Studies/VARS/star_points_with_output.csv', index = False )
+    csv_input['output max infected'] = np.max(output_data, axis = 1)
+    csv_input.to_csv('Studies/VARS/star_points_with_output_infected.csv', index = False )
     print("Saved to file.")
 
 
-ex_modelframe = pd.read_csv('Studies/VARS/star_points_with_output.csv', index_col=[0, 1, 2])
+ex_modelframe = pd.read_csv('Studies/VARS/star_points_with_output_infected.csv', index_col=[0, 1, 2])
 #print(type(ex_modelframe['output max dead'].values))
 #print(ex_modelframe.index.get_level_values(-1))
 #print(ex_modelframe.index.get_level_values(-2))
@@ -81,11 +81,10 @@ ex_modelframe = pd.read_csv('Studies/VARS/star_points_with_output.csv', index_co
 
 experiment.run_offline(ex_modelframe)
 
-with open('Studies/VARS/VARS_experiment.pkl', 'wb') as f: 
+with open('Studies/VARS/VARS_experiment_infected.pkl', 'wb') as f: 
     pickle.dump(experiment, f)
 
-cols = experiment.parameters.keys()
-experiment.ivars[cols].to_csv('Studies/VARS/SA_results.csv', index = False )
+#experiment.ivars[cols].to_csv('Studies/VARS/SA_results.csv', index = False )
 
 # Plot IVARS from Experiment 1
 ivars_scale = 0.5 # Choose the scale range of interest, e.g., 0.1, 0.3, or 0.5
@@ -101,7 +100,7 @@ plt.gca().tick_params(labelrotation=90)
 plt.gca().grid()
 plt.gca().set_yscale('linear')
 plt.tight_layout()
-plt.savefig("latex_plots/VARS_50.png")
+plt.savefig("latex_plots/VARS_50_infected.png")
 plt.show()
 
 fig_bar = plt.figure(figsize=(15,10))
@@ -114,7 +113,7 @@ plt.gca().grid()
 plt.gca().set_yscale('log')
 plt.tight_layout()
 
-plt.savefig("latex_plots/VARS_50_log.png")
+plt.savefig("latex_plots/VARS_50_log_infected.png")
 plt.show()
 
 # Directional Variograms
@@ -145,6 +144,6 @@ plt.gca().set_yscale('log')
 plt.gca().legend (cols, loc='lower right', fontsize = 10)
 plt.gca().grid()
 
-plt.savefig("latex_plots/VARS_directional.png")
+plt.savefig("latex_plots/VARS_directional_infected.png")
 plt.show()
 
