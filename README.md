@@ -7,6 +7,15 @@ The project is based on the python package MEmilio which contains the analysed m
 https://github.com/DLR-SC/memilio
 
 
+## File structure
+
+- **utils_SA.py** contains the compuational model 
+- **define(...).py** files contain scripts that prepare the data for the sensitivity analysis 
+- **analysis(...).ipynb** files contain different types of sensitivty analyses from different libraries
+- **parameter_estimation.py** contains a script to perform a parameter estimation on the whole input space or on a selected subset
+- **inputFactorSpace.py** contains the definition of the input space (input factors and distributions)
+
+
 ## References
 <a id="1">[1]</a> 
 Kühn, M. J., Abele, D., Mitra, T., Koslow, W., Abedi, M., Rack, K., … Meyer-Hermann, M. (2021). 
@@ -25,15 +34,7 @@ Baudin, M., Dutfoy, A., Iooss, B., & Popelin, A.-L. (2017). OpenTURNS: An Indust
 <a id="1">[5]</a>
 Razavi, S., Sheikholeslami, R., Gupta, H. V., & Haghnegahdar, A. (2019). VARS-TOOL: A toolbox for comprehensive, efficient, and robust sensitivity and uncertainty analysis. Environmental Modelling & Software, 112(May 2018), 95–107. https://doi.org/10.1016/j.envsoft.2018.10.005
 
-
-
-
-
-## File structure
-
-- **utils_SA.py** contains the compuational model 
-- **define(...).py** files contain scripts that prepare the data for the sensitivity analysis 
-- **analysis(...).ipynb** files contain different types of sensitivty analyses from different libraries
-- **parameter_estimation.py** contains a script to perform a parameter estimation on the whole input space or on a selected subset
-- **inputFactorSpace.py** contains the definition of the input space (input factors and distributions)
+<a id="1">[6]</a>
+Stapor, P., Weindl, D., Ballnus, B., Hug, S., Loos, C., Fiedler, A., Krause, S., Hross, S., Fröhlich, F., Hasenauer, J. (2018). PESTO: Parameter EStimation TOolbox. Bioinformatics, 34(4), 705-707. doi: 10.1093/bioinformatics/btx676
+https://github.com/ICB-DCM/pyPESTO
 
