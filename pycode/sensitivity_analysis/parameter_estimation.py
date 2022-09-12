@@ -119,7 +119,7 @@ def simulate_model_logParam(theta,
 
 # TODO: change noise model
 def neg_log_likelihood_logParam(theta, measurement = infected_cases):
-    sigma = theta[0]
+    sigma = np.exp(theta[0])
     simulation = simulate_model_logParam(theta[1:])
     simulation = simulation
     nllh = np.log(2*np.pi*sigma**2)+((measurement-simulation)/sigma)**2
@@ -151,7 +151,7 @@ objective1 = pypesto.Objective(
 #lb = np.array([1e-3] + [50, 25, 10, 10, 1e-3, 1e-3, 1e-3] + [3, 1, 1, 1, 1, 1] + [0.1, 0.6, 0.05, 0.01, 0.1, 0.15, 0.15, 1])
 #ub = np.array([1] + [150, 75, 30, 30, 20, 20, 1] + [7, 15, 15, 15, 15, 15] + [ 0.9, 1.0, 0.5, 0.16, 0.35, 0.4, 0.77, 3])
 
-lb = np.array([1e-5] + lower_bounds)
+lb = np.array([1e-9] + lower_bounds)
 lb = np.where(lb <= 0, 1e-9, lb)
 ub = np.array([1] + upper_bounds)#+1e-9 
 
@@ -161,12 +161,12 @@ ub = np.log(ub)
 problem1 = pypesto.Problem(objective=objective1, lb=lb, ub=ub)
 
 # create different optimizers
-optimizer_bfgs = optimize.ScipyOptimizer(method="l-bfgs-b")
-optimizer_tnc = optimize.ScipyOptimizer()
+optimizer_bfgs = optimize.ScipyOptimizer(method="l-bfgs-b", options = {'maxiter': 2000}) #method="l-bfgs-b"
+optimizer_tnc = optimize.ScipyOptimizer(method = 'TNC', options = {'maxiter': 2000})
 optimizer_fides = optimize.FidesOptimizer()
 
 # set number of starts
-n_starts = 200
+n_starts = 100
 # save optimizer trace
 history_options = pypesto.HistoryOptions(trace_record=True)
 
@@ -189,8 +189,8 @@ result1_tnc = optimize.minimize(
 
 end = time.time()
 
-sampler = sample.AdaptiveMetropolisSampler()
-result = sample.sample(
+sampler = sample.AdaptiveMetropolisSampler() #sample.EmceeSampler(nwalkers=1)
+result1_tnc = sample.sample(
     problem=problem1,
     sampler=sampler,
     n_samples=100000,

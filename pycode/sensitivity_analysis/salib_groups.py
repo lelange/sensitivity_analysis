@@ -16,7 +16,7 @@ import openturns as ot
 import os
 import argparse
 
-path_simulation_result = 'Studies/Sobol_MC_1_Dead.pkl'
+path_simulation_result = 'Studies/Sobol_MC_1_Infected.pkl'
 path_input_factor_groups = 'data/input_factor_groups.pkl'
 
 use_groups = True

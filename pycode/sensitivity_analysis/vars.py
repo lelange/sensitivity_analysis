@@ -24,28 +24,27 @@ with open(path_simulation_result, 'rb') as f:
     distributions = pickle.load(f)
     static_params = pickle.load(f)
 
-
 parameters = {}
 for i in range(len(input_factor_names)):
     parameters[input_factor_names[i]] = [distributions[i].getA(), distributions[i].getB()]
 
 experiment = VARS(
                 parameters     = parameters,
-                num_stars      = 500,
+                num_stars      = 100,
                 delta_h        = 0.01,
                 ivars_scales   = (0.1, 0.3, 0.5),
                 sampler        = 'lhs',
                 seed           = 123456789,
-                bootstrap_flag = True,
-                bootstrap_size = 1000,
+                bootstrap_flag = False,
+                bootstrap_size = 100,
                 bootstrap_ci   = 0.95,
-                grouping_flag  = True,
-                num_grps = 3,
+                grouping_flag  = False,
+                #num_grps = 3,
                 report_verbose = True,
                 )
 
-save_star = True
-run_model = True
+save_star = False
+run_model = False
 
 if save_star:
     star_points = experiment.generate_star()
@@ -102,6 +101,8 @@ plt.gca().tick_params(labelrotation=90)
 plt.gca().grid()
 plt.gca().set_yscale('linear')
 plt.tight_layout()
+plt.savefig("latex_plots/VARS_50.png")
+plt.show()
 
 fig_bar = plt.figure(figsize=(15,10))
 plt.gca().bar(cols, experiment.ivars.loc[pd.IndexSlice[ ivars_scale ]][cols], color='gold')
@@ -112,8 +113,38 @@ plt.gca().tick_params(labelrotation=90)
 plt.gca().grid()
 plt.gca().set_yscale('log')
 plt.tight_layout()
+
+plt.savefig("latex_plots/VARS_50_log.png")
 plt.show()
 
-plt.savefig("plots/VARS.png")
+# Directional Variograms
 
+variograms1 = experiment.gamma.unstack(0)[cols].copy()
+print(type(variograms1))
+plotting_scale = 0.5 # any number between delta_h and one.
+
+matrix_y = variograms1.loc[variograms1.index <= plotting_scale].to_numpy()
+column_x = variograms1.loc[variograms1.index <= plotting_scale].index.to_numpy()
+matrix_x = np.tile(column_x, (matrix_y.shape[1], 1)).T
+
+fig_cdf = plt.figure(figsize=(10,5))
+plt.gca().plot(matrix_x, matrix_y )
+plt.gca().set_title (r'Directional Variogram', fontsize = 15)
+plt.gca().set_ylabel(r'$γ(h)$', fontsize = 13)
+plt.gca().set_xlabel(r'$h$ (perturbation scale)', fontsize=13)
+plt.gca().set_yscale('linear')
+plt.gca().legend (cols, loc='upper left', fontsize = 10)
+plt.gca().grid()
+
+fig_cdf = plt.figure(figsize=(10,5))
+plt.gca().plot(matrix_x, matrix_y )
+plt.gca().set_title (r'Directional Variogram $[log-scale]$', fontsize = 15)
+plt.gca().set_ylabel(r'$γ(h)$', fontsize = 13)
+plt.gca().set_xlabel(r'$h$ (perturbation scale)', fontsize=13)
+plt.gca().set_yscale('log')
+plt.gca().legend (cols, loc='lower right', fontsize = 10)
+plt.gca().grid()
+
+plt.savefig("latex_plots/VARS_directional.png")
+plt.show()
 
