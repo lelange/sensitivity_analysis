@@ -11,7 +11,7 @@ https://github.com/DLR-SC/memilio
 
 - **utils_SA.py** contains the compuational model 
 - **define(...).py** files contain scripts that prepare the data for the sensitivity analysis 
-- **analysis(...).ipynb** files contain different types of sensitivty analyses from different libraries
+- **analysis(...).ipynb** files contain different types of sensitivty analyses and uncertainty quantification from different libraries
 - **parameter_estimation.py** contains a script to perform a parameter estimation on the whole input space or on a selected subset
 - **inputFactorSpace.py** contains the definition of the input space (input factors and distributions)
 
